@@ -17,19 +17,19 @@ topn <- function(x, n) {
   x[order(x, decreasing=TRUE)][1:n]
 }
 
-split_importance <- function(D, edges) {
+split_importance <- function(D, edges, ntrees) {
   bg <- apply(D, 2, function(x) sample(x, length(x), TRUE))
   all <- rbind(D, bg)
   all[[GROUP_FEATURE_NAME]] <- as.factor(c(rep("fg", nrow(D)), rep("bg", nrow(bg))))
   
-  fit <- grandforest(data=all, dependent.variable.name=GROUP_FEATURE_NAME, graph_data=edges, num.trees=1000, importance="impurity")
+  fit <- grandforest(data=all, dependent.variable.name=GROUP_FEATURE_NAME, graph_data=edges, num.trees=ntrees, importance="impurity")
   importance(fit)
 }
 
-split_node <- function(tree, i, D, edges, nfeatures, nclusters) {
+split_node <- function(tree, i, D, edges, ntrees, nfeatures, nclusters) {
   rows <- tree[[i]]$rows
-  if(is.null(tree[[i]]$importance)) {
-    tree[[i]]$importance <- split_importance(D[rows,], edges)
+  if(is.null(tree[[i]]$importance) || tree[[i]]$ntrees != ntrees) {
+    tree[[i]]$importance <- split_importance(D[rows,], edges, ntrees)
   }
   
   features <- names(topn(tree[[i]]$importance, nfeatures))
@@ -38,6 +38,7 @@ split_node <- function(tree, i, D, edges, nfeatures, nclusters) {
   
   tlength <- length(tree)
   
+  tree[[i]]$ntrees <- ntrees
   tree[[i]]$nfeatures <- nfeatures
   tree[[i]]$cluster <- cluster
   tree[[i]]$children <- seq(tlength+1, tlength+nclusters)
@@ -187,7 +188,7 @@ shinyServer(function(input, output, session) {
       showNotification("Please select a node to split.", type="error")
       return()
     }
-    if(input$numtrees > MAX_NUM_TREES || input$numtrees < MIN_NUM_TREES) {
+    if(input$ntrees > MAX_NUM_TREES || input$ntrees < MIN_NUM_TREES) {
       showNotification(paste0("Number of trees must be >= ", MIN_NUM_FEATURES, " and <= ", MAX_NUM_FEATURES), type="error")
       return()
     }
@@ -202,7 +203,7 @@ shinyServer(function(input, output, session) {
       node_id <- as.numeric(input$splitTree_selected)
       
       setProgress(value=0.1, detail = "Training model")
-      tree <- split_node(tree, node_id, currentData(), currentEdges(), input$nfeatures, input$nclusters)
+      tree <- split_node(tree, node_id, currentData(), currentEdges(), input$ntrees, input$nfeatures, input$nclusters)
       currentTree(tree)
       lastSplitID(node_id)
     })
