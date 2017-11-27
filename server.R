@@ -96,7 +96,10 @@ shinyServer(function(input, output, session) {
   outputOptions(output, "hasModel", suspendWhenHidden=FALSE)
   
   output$hasSplitSelected <- reactive({
-    req(input$splitTree_selected, currentFeatures())
+    req(input$splitTree_selected)
+    node_id <- as.numeric(input$splitTree_selected)
+    tree <- currentTree()
+    req(tree[[node_id]]$importance)
     return(TRUE)
   })
   outputOptions(output, "hasSplitSelected", suspendWhenHidden=FALSE)
@@ -335,15 +338,27 @@ shinyServer(function(input, output, session) {
   })
   
   output$survivalPlot <- renderPlot({
-    req(input$splitTree_selected)
     survival <- req(currentSurvivalData())
-    
-    node_id <- as.numeric(input$splitTree_selected)
     tree <- currentTree()
     
-    rows <- tree[[node_id]]$rows
-    group_names <- tree[[node_id]]$children
-    cluster <- as.factor(group_names[tree[[node_id]]$cluster])
+    if(input$survivalPlotType == "selected") {
+      req(input$splitTree_selected)
+      node_id <- as.numeric(input$splitTree_selected)
+      req(!is.null(tree[[node_id]]$importance))
+      
+      rows <- tree[[node_id]]$rows
+      group_names <- tree[[node_id]]$children
+      cluster <- as.factor(group_names[tree[[node_id]]$cluster])
+    } else if(input$survivalPlotType == "leaves") {
+      node_ids <- split_tree_reachable_nodes(tree)
+      is_leaf <- sapply(node_ids, function(i) is.null(tree[[i]]$importance))
+      node_ids <- node_ids[is_leaf]
+      
+      rows <- do.call(c, lapply(node_ids, function(i) tree[[i]]$rows))
+      cluster <- as.factor(do.call(c, lapply(node_ids, function(i) rep(i, length(tree[[i]]$rows)))))
+    } else {
+      return()
+    }
     
     D <- data.frame(
       time = survival$time[rows],

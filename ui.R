@@ -87,12 +87,11 @@ shinyUI(navbarPage("Grand Forest • Unsupervised", theme=shinytheme("cosmo"),
         ),
         conditionalPanel("output.hasSurvivalData == true",
           h3("Survival curves"),
-          conditionalPanel("output.hasSplitSelected != true",
-            tags$div(class="alert alert-info",
-              p("Please select a split node to show survival curves.")
-            )
-          ),
-          conditionalPanel("output.hasSplitSelected == true",
+          wellPanel(
+            radioButtons("survivalPlotType", "Plot curves for:", inline=TRUE, choices = list(
+              "Selected split" = "selected",
+              "All leaf nodes" = "leaves"
+            )),
             plotOutput("survivalPlot")
           )
         ),
