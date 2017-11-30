@@ -92,6 +92,7 @@ shinyUI(navbarPage("Grand Forest • Unsupervised", theme=shinytheme("cosmo"),
               "Selected split" = "selected",
               "All leaf nodes" = "leaves"
             )),
+            checkboxInput("survivalPlotShowKnown", "Plot known clusters", value=FALSE),
             plotOutput("survivalPlot")
           )
         ),

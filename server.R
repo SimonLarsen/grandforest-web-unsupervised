@@ -6,8 +6,10 @@ library(visNetwork)
 library(ComplexHeatmap)
 library(circlize)
 library(org.Hs.eg.db)
+library(ggplot2)
 library(survival)
 library(survminer)
+library(gridExtra)
 
 source("grandforest-web-common/get_network.R")
 source("grandforest-web-common/enrichment.R")
@@ -360,12 +362,25 @@ shinyServer(function(input, output, session) {
       return()
     }
     
-    D <- data.frame(
-      time = survival$time[rows],
-      status = survival$status[rows],
-      cluster = cluster
-    )
+    D <- data.frame(time = survival$time[rows], status = survival$status[rows], cluster = cluster)
+    fit <- survfit(Surv(time, status)~cluster, data=D)
+    pval <- paste0("p = ", surv_pvalue(fit, data=D)$pval)
+    p <- ggsurvplot(fit, data=D, pval=pval)
     
+    if(input$survivalPlotShowKnown && isTruthy(currentKnownClusters())) {
+      D$cluster <- as.factor(currentKnownClusters())
+      fit <- survfit(Surv(time, status)~cluster, data=D)
+      pval <- paste0("p = ", surv_pvalue(fit, data=D)$pval)
+      p2 <- ggsurvplot(fit, data=D, pval=pval)
+      p <- grid.arrange(p$plot, p2$plot, ncol=2)
+    }
+    
+    return(p)
+  })
+  
+  output$survivalPlotKnown <- renderPlot({
+    D <- survivalPlotData()
+    D$cluster <- as.factor(req(currentKnownClusters()))
     fit <- survfit(Surv(time, status)~cluster, data=D)
     pval <- paste0("p = ", surv_pvalue(fit, data=D)$pval)
     ggsurvplot(fit, data=D, pval=pval)
