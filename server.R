@@ -368,7 +368,7 @@ shinyServer(function(input, output, session) {
     p <- ggsurvplot(fit, data=D, pval=pval)
     
     if(input$survivalPlotShowKnown && isTruthy(currentKnownClusters())) {
-      D$cluster <- as.factor(currentKnownClusters())
+      D$cluster <- as.factor(currentKnownClusters()[rows])
       fit <- survfit(Surv(time, status)~cluster, data=D)
       pval <- paste0("p = ", surv_pvalue(fit, data=D)$pval)
       p2 <- ggsurvplot(fit, data=D, pval=pval)
