@@ -430,7 +430,9 @@ shinyServer(function(input, output, session) {
   )
   
   output$dlFeatureGraph <- downloadHandler(
-    filename = paste0("network_top", input$nfeatures, ".sif"),
+    filename = function() {
+      paste0("network_top", length(currentFeatures()), ".sif")
+    },
     content = function(file) {
       features <- names(currentFeatures())
 
