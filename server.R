@@ -292,7 +292,9 @@ shinyServer(function(input, output, session) {
       labels <- mapIds(org.Hs.eg.db, features, "SYMBOL", "ENTREZID")
     }
     
-    feature_graph(D, edges, features, labels, tree[[node_id]]$cluster)
+    group_names <- tree[[node_id]]$children
+    groups <- group_names[tree[[node_id]]$cluster]
+    feature_graph(D, edges, features, labels, groups)
   })
   
   output$featureTable <- renderDataTable({
