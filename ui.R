@@ -14,12 +14,14 @@ shinyUI(navbarPage("Grand Forest • Unsupervised", theme=shinytheme("cosmo"),
     ),
     sidebarLayout(
       sidebarPanel(width = 3,
-        h3("Upload data"),
+        tags$h3("Upload data", class="sidebar-top-heading"),
         fileInput("file", "Expression table (.csv file)", accept = "text/csv"),
         checkboxInput("hasSurvival", "Include survival information", value=FALSE),
         conditionalPanel("input.hasSurvival == true",
-          textInput("timeVar", "Time variable name"),
-          textInput("statusVar", "Status variable name")
+          fluidRow(
+            column(width=6, textInput("timeVar", "Time variable name")),
+            column(width=6, textInput("statusVar", "Status variable name"))
+          )
         ),
         textInput("clusterVar", "Known cluster variable name (optional)"),
         selectInput("graph", "Genetic interaction network",
@@ -53,7 +55,7 @@ shinyUI(navbarPage("Grand Forest • Unsupervised", theme=shinytheme("cosmo"),
           ),
           column(width = 6,
             h3("Heatmap"),
-            p("Heatmap of sample subgroups clustered on computed feature subgraph."),
+            p("Heatmap of sample subgroups clustered on computed feature subnetwork."),
             wellPanel(
               plotOutput("featureHeatmap", height=500),
               conditionalPanel("output.hasSplitSelected == true",
@@ -64,7 +66,7 @@ shinyUI(navbarPage("Grand Forest • Unsupervised", theme=shinytheme("cosmo"),
         ),
         fluidRow(
           column(width = 6,
-            h3("Feature subgraph"),
+            h3("Feature subnetwork"),
             wellPanel(
               visNetworkOutput("featureGraph"),
               fluidRow(
