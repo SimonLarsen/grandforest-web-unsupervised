@@ -119,14 +119,27 @@ shinyServer(function(input, output, session) {
   outputOptions(output, "hasSurvivalData", suspendWhenHidden=FALSE)
   
   observeEvent(input$uploadButton, {
-    if(!isTruthy(input$file)) {
+    if(!input$useExampleData && !isTruthy(input$file)) {
       showNotification("Please select an expression data file and wait for it to upload before submitting.", type="error")
       return()
     }
     
     withProgress(value=0, message = "Parsing data", {
       setProgress(value=0, detail="Parsing expression data")
-      D <- fread(input$file$datapath, header=TRUE, sep=",")
+      
+      if(input$useExampleData) {
+        D <- readRDS(EXAMPLE_DATA_PATH)
+        clusterVar <- EXAMPLE_DATA_CLUSTERVAR
+        hasSurvival <- TRUE
+        timeVar <- EXAMPLE_DATA_TIMEVAR
+        statusVar <- EXAMPLE_DATA_STATUSVAR
+      } else {
+        D <- fread(input$file$datapath, header=TRUE, sep=",")
+        clusterVar <- input$clusterVar
+        hasSurvival <- input$hasSurvival
+        timeVar <- input$timeVar
+        statusVar <- input$statusVar
+      }
       
       if(GROUP_FEATURE_NAME %in% colnames(D)) {
         showNotification(paste0("Column name \"", GROUP_FEATURE_NAME, "\" is not allowed in expression table."), type="error")
@@ -134,40 +147,42 @@ shinyServer(function(input, output, session) {
       }
       
       clusters <- NULL
-      if(input$clusterVar != "") {
-        if(!(input$clusterVar %in% colnames(D))) {
+      if(clusterVar != "") {
+        if(!(clusterVar %in% colnames(D))) {
           showNotification("Known cluster variable name does not match any column name in data file.", type="error")
           return()
         }
         
-        clusters <- as.factor(D[[input$clusterVar]])
-        cluster_col <- which(colnames(D) == input$clusterVar)
+        clusters <- as.factor(D[[clusterVar]])
+        cluster_col <- which(colnames(D) == clusterVar)
         D <- D[,-cluster_col,with=FALSE]
       }
       
       survival <- NULL
-      if(input$hasSurvival) {
-        if(!(input$timeVar %in% colnames(D))) {
+      if(hasSurvival) {
+        if(!(timeVar %in% colnames(D))) {
           showNotification("Survival time variable name does not match any column name in data file.", type="error")
           return()
         }
-        if(!(input$statusVar %in% colnames(D))) {
+        if(!(statusVar %in% colnames(D))) {
           showNotification("Survival status variable name does not match any column name in data file.", type="error")
           return()
         }
         
         survival <- list()
-        survival$time <- as.numeric(D[[input$timeVar]])
-        survival$status <- as.numeric(D[[input$statusVar]])
-        time_col <- which(colnames(D) == input$timeVar)
-        status_col <- which(colnames(D) == input$statusVar)
+        survival$time <- as.numeric(D[[timeVar]])
+        survival$status <- as.numeric(D[[statusVar]])
+        time_col <- which(colnames(D) == timeVar)
+        status_col <- which(colnames(D) == statusVar)
         D <- D[,-c(time_col,status_col),with=FALSE]
       }
       
       # scale and mean center data
       setProgress(value=0.7, detail="Normalizing data")
       D <- tryCatch({
-        data.table(scale(D, center=TRUE, scale=TRUE))
+        x <- scale(D, center=TRUE, scale=TRUE)
+        x <- x[,!apply(x, 2, function(y) any(is.na(y)))] # remove NaN columns
+        data.table(x)
       }, error = function(e) {
         showNotification("Normalization failed. Not all columns are numeric.", type="error")
         req(FALSE)

@@ -1,6 +1,5 @@
 library(shiny)
 library(shinythemes)
-library(shinydashboard)
 library(shinysky)
 library(visNetwork)
 
@@ -15,15 +14,18 @@ shinyUI(navbarPage("Grand Forest • Unsupervised", theme=shinytheme("cosmo"),
     sidebarLayout(
       sidebarPanel(width = 3,
         tags$h3("Upload data", class="sidebar-top-heading"),
-        fileInput("file", "Expression table (.csv file)", accept = "text/csv"),
-        checkboxInput("hasSurvival", "Include survival information", value=FALSE),
-        conditionalPanel("input.hasSurvival == true",
-          fluidRow(
-            column(width=6, textInput("timeVar", "Time variable name")),
-            column(width=6, textInput("statusVar", "Status variable name"))
-          )
+        checkboxInput("useExampleData", "Use example data"),
+        conditionalPanel("input.useExampleData == false",
+          fileInput("file", "Expression table (.csv file)", accept = "text/csv"),
+          checkboxInput("hasSurvival", "Include survival information", value=FALSE),
+          conditionalPanel("input.hasSurvival == true",
+            fluidRow(
+              column(width=6, textInput("timeVar", "Time variable name")),
+              column(width=6, textInput("statusVar", "Status variable name"))
+            )
+          ),
+          textInput("clusterVar", "Known cluster variable name (optional)")
         ),
-        textInput("clusterVar", "Known cluster variable name (optional)"),
         selectInput("graph", "Genetic interaction network",
           list(
             "IID, Human, Experimental only" = "iidexp",
