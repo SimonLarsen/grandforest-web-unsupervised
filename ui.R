@@ -43,6 +43,7 @@ shinyUI(tagList(
           actionButton("uploadButton", "Submit", styleclass = "primary"),
           conditionalPanel("output.hasModel == true",
             h3("Split parameters"),
+            uiOutput("summary"),
             numericInput("ntrees", "Number of decision trees", DEFAULT_NUM_TREES, min = MIN_NUM_TREES, max = MAX_NUM_TREES),
             sliderInput("nfeatures", "Number of features to split on", min=MIN_NUM_FEATURES, max=MAX_NUM_FEATURES, value=DEFAULT_NUM_FEATURES, step=1),
             sliderInput("nclusters", "Number of clusters to split into", min=MIN_NUM_CLUSTERS, max=MAX_NUM_CLUSTERS, value=DEFAULT_NUM_CLUSTERS, step=1),

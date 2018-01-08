@@ -90,6 +90,7 @@ shinyServer(function(input, output, session) {
   currentKnownClusters <- reactiveVal()
   currentEdges <- reactiveVal()
   currentTree <- reactiveVal(list())
+  currentStats <- reactiveVal()
   lastSplitID <- reactiveVal()
   currentEnrichmentTable <- reactiveVal()
   
@@ -195,12 +196,17 @@ shinyServer(function(input, output, session) {
       edges <- fread(graph.path, header=FALSE, sep="\t", colClasses=rep("character", 2))
       colnames(edges) <- c("from","to")
       
+      all_nodes <- unique(c(edges$from, edges$to))
+      found_genes <- intersect(colnames(D), all_nodes)
+      missing_genes <- setdiff(colnames(D), all_nodes)
+      
       setProgress(value=0.9, detail="Finishing up")
       currentData(D)
       currentKnownClusters(clusters)
       currentSurvivalData(survival)
       currentEdges(edges)
       currentTree(list(list(rows=1:nrow(D))))
+      currentStats(list(found_genes=found_genes, missing_genes=missing_genes))
       lastSplitID(1)
     })
   })
@@ -262,6 +268,15 @@ shinyServer(function(input, output, session) {
     importance <- currentFeatures()
     names <- mapIds(org.Hs.eg.db, names(importance), "SYMBOL", "ENTREZID")
     data.table(gene=names(importance), name=names, importance=importance)
+  })
+  
+  output$summary <- renderUI({
+    stats <- currentStats()
+    found_pct <- length(stats$found_genes) / ncol(currentData()) * 100
+    p(
+      sprintf("Genes in network: %.2f %%", found_pct),
+      downloadLink("dlMissingGenes", sprintf("(%d missing)", length(stats$missing_genes)))
+    )
   })
   
   output$splitTree <- renderVisNetwork({
@@ -489,6 +504,13 @@ shinyServer(function(input, output, session) {
     filename = "enrichment.csv",
     content = function(file) {
       write.csv(as.data.frame(currentEnrichmentTable()), file, row.names=FALSE)
+    }
+  )
+  
+  output$dlMissingGenes <- downloadHandler(
+    filename = "missing_genes.txt",
+    content = function(file) {
+      write(currentStats()$missing_genes, file=file)
     }
   )
   
