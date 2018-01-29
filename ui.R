@@ -1,8 +1,8 @@
 library(shiny)
 library(shinyjs)
-library(shinythemes)
 library(shinysky)
 library(visNetwork)
+library(shinycssloaders)
 
 source("grandforest-web-common/enrichment.R")
 
@@ -13,7 +13,7 @@ shinyUI(tagList(
   ),
   useShinyjs(),
   div(id="loading-content", h2("Loading..."), div(class="loader", "Loading")),
-  navbarPage("Grand Forest • Unsupervised", theme=shinytheme("cosmo"),
+  navbarPage("Grand Forest • Unsupervised", inverse=TRUE,
     footer=column(width=12, hr(), p("Grand Forest • Unsupervised workflow • Version 0.1")),
     tabPanel("Analysis",
       sidebarLayout(
@@ -65,7 +65,7 @@ shinyUI(tagList(
               h3("Heatmap"),
               p("Heatmap of sample subgroups clustered on computed feature subnetwork."),
               wellPanel(
-                plotOutput("featureHeatmap", height=500),
+                withSpinner(plotOutput("featureHeatmap", height=500)),
                 conditionalPanel("output.hasSplitSelected == true",
                   downloadButton("dlFeatureHeatmap", "Download heatmap", class="btn-sm")
                 )
@@ -103,7 +103,7 @@ shinyUI(tagList(
                 "All leaf nodes" = "leaves"
               )),
               checkboxInput("survivalPlotShowKnown", "Plot known clusters", value=FALSE),
-              plotOutput("survivalPlot")
+              withSpinner(plotOutput("survivalPlot"))
             )
           ),
           h3("Gene set enrichment"),
@@ -128,7 +128,7 @@ shinyUI(tagList(
                     downloadButton("dlEnrichmentTable", "Download table", class="btn-sm")
                   ),
                   tabPanel("Plot",
-                    plotOutput("enrichmentPlot")
+                    withSpinner(plotOutput("enrichmentPlot"))
                   )
                 )
               )
