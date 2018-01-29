@@ -15,6 +15,7 @@ library(gridExtra)
 
 source("grandforest-web-common/get_network.R")
 source("grandforest-web-common/enrichment.R")
+source("grandforest-web-common/targets.R")
 source("grandforest-web-common/feature_graph.R")
 
 topn <- function(x, n) {
@@ -93,12 +94,19 @@ shinyServer(function(input, output, session) {
   currentStats <- reactiveVal()
   lastSplitID <- reactiveVal()
   currentEnrichmentTable <- reactiveVal()
+  currentTargetsTable <- reactiveVal()
 
   output$hasModel <- reactive({
     req(currentTree())
     return(length(currentTree()) > 0)
   })
   outputOptions(output, "hasModel", suspendWhenHidden=FALSE)
+
+  output$hasSurvivalData <- reactive({
+    req(currentSurvivalData())
+    return(TRUE)
+  })
+  outputOptions(output, "hasSurvivalData", suspendWhenHidden=FALSE)
 
   output$hasSplitSelected <- reactive({
     req(input$splitTree_selected)
@@ -110,16 +118,16 @@ shinyServer(function(input, output, session) {
   outputOptions(output, "hasSplitSelected", suspendWhenHidden=FALSE)
 
   output$hasEnrichmentTable <- reactive({
-    req(currentEnrichmentTable())
-    return(TRUE)
+    D <- req(currentEnrichmentTable())
+    return(nrow(D) > 0)
   })
   outputOptions(output, "hasEnrichmentTable", suspendWhenHidden=FALSE)
 
-  output$hasSurvivalData <- reactive({
-    req(currentSurvivalData())
-    return(TRUE)
+  output$hasTargetsTable <- reactive({
+    D <- req(currentTargetsTable())
+    return(nrow(D) > 0)
   })
-  outputOptions(output, "hasSurvivalData", suspendWhenHidden=FALSE)
+  outputOptions(output, "hasTargetsTable", suspendWhenHidden=FALSE)
 
   observeEvent(input$uploadButton, {
     if(!input$useExampleData && !isTruthy(input$file)) {
@@ -207,6 +215,8 @@ shinyServer(function(input, output, session) {
       currentEdges(edges)
       currentTree(list(list(rows=1:nrow(D))))
       currentStats(list(found_genes=found_genes, missing_genes=missing_genes))
+      currentEnrichmentTable(NULL)
+      currentTargetsTable(NULL)
       lastSplitID(1)
     })
   })
@@ -235,6 +245,12 @@ shinyServer(function(input, output, session) {
       currentTree(tree)
       lastSplitID(node_id)
     })
+  })
+
+  # clear enrichment results on split change
+  observeEvent(input$splitTree_selected, {
+    currentEnrichmentTable(NULL)
+    currentTargetsTable(NULL)
   })
 
   observeEvent(input$collapseButton, {
@@ -427,27 +443,35 @@ shinyServer(function(input, output, session) {
       D <- currentData()
       universe <- colnames(D)
 
-      setProgress(value=0.1, detail="Computing enrichment")
+      setProgress(value=0.2, detail="Computing enrichment")
       out <- gene_set_enrichment(genes, universe, input$enrichmentType, input$enrichmentPvalueCutoff, input$enrichmentQvalueCutoff)
 
-      setProgress(value=0.1, detail="Finishing up")
+      setProgress(value=0.9, detail="Finishing up")
       currentEnrichmentTable(out)
     })
   })
 
   output$enrichmentTable <- renderDataTable({
     D <- req(as.data.frame(currentEnrichmentTable()))
-    D$ID <- gene_set_enrichment_get_links(D$ID, isolate(input$enrichmentType))
+    D <- gene_set_enrichment_get_links(D, isolate(input$enrichmentType))
     return(D)
-  }, options = list(
-    scrollX = TRUE,
-    pageLength = 10
-  ), escape = FALSE)
+  }, options = list(pageLength=10, scrollX=TRUE), escape=FALSE)
 
   output$enrichmentPlot <- renderPlot({
     D <- req(currentEnrichmentTable())
     DOSE::dotplot(D, showCategory=20)
   })
+
+  observeEvent(input$targetsButton, {
+    req(featureTable())
+    genes <- names(currentFeatures())
+    out <- get_gene_targets(genes, input$targetsType)
+    currentTargetsTable(out)
+  })
+
+  output$targetsTable <- renderDataTable({
+    get_gene_target_links(currentTargetsTable(), isolate(input$targetsType))
+  }, options=list(pageLength=10, scrollX=TRUE), escape=FALSE)
 
   output$dlSplitTree <- downloadHandler(
     filename = "split_tree.csv",
@@ -501,7 +525,7 @@ shinyServer(function(input, output, session) {
   )
 
   output$dlEnrichmentTable <- downloadHandler(
-    filename = "enrichment.csv",
+    filename = function() { paste0("enrichment.", input$enrichmentType,".csv") },
     content = function(file) {
       write.csv(as.data.frame(currentEnrichmentTable()), file, row.names=FALSE)
     }
