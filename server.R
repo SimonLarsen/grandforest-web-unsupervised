@@ -136,7 +136,7 @@ shinyServer(function(input, output, session) {
     }
 
     withProgress(value=0, message = "Parsing data", {
-      setProgress(value=0, detail="Parsing expression data")
+      setProgress(value=0.1, detail="Parsing expression data")
 
       if(input$useExampleData) {
         D <- readRDS(EXAMPLE_DATA_PATH)
@@ -188,18 +188,8 @@ shinyServer(function(input, output, session) {
         D <- D[,-c(time_col,status_col),with=FALSE]
       }
 
-      # scale and mean center data
-      setProgress(value=0.7, detail="Normalizing data")
-      D <- tryCatch({
-        x <- scale(D, center=TRUE, scale=TRUE)
-        x <- x[,!apply(x, 2, function(y) any(is.na(y)))] # remove NaN columns
-        data.table(x)
-      }, error = function(e) {
-        alert("Normalization failed. Not all columns are numeric.")
-        req(FALSE)
-      })
-
-      setProgress(value=0.8, detail="Preparing network")
+      # read network data
+      setProgress(value=0.4, detail="Preparing network")
       graph.path <- get_network_file(input$graph)
       edges <- fread(graph.path, header=FALSE, sep="\t", colClasses=rep("character", 2))
       colnames(edges) <- c("from","to")
@@ -207,6 +197,17 @@ shinyServer(function(input, output, session) {
       all_nodes <- unique(c(edges$from, edges$to))
       found_genes <- intersect(colnames(D), all_nodes)
       missing_genes <- setdiff(colnames(D), all_nodes)
+
+      # scale and mean center data
+      setProgress(value=0.6, detail="Normalizing data")
+      D <- tryCatch({
+        x <- scale(D[,found_genes,with=FALSE], center=TRUE, scale=TRUE)
+        x <- x[,!apply(x, 2, function(y) any(is.na(y)))] # remove NaN columns
+        data.table(x)
+      }, error = function(e) {
+        alert("Normalization failed. Not all columns are numeric.")
+        return()
+      })
 
       setProgress(value=0.9, detail="Finishing up")
       currentData(D)
@@ -288,7 +289,7 @@ shinyServer(function(input, output, session) {
 
   output$summary <- renderUI({
     stats <- currentStats()
-    found_pct <- length(stats$found_genes) / ncol(currentData()) * 100
+    found_pct <- length(stats$found_genes) / (length(stats$found_genes)+length(stats$missing_genes)) * 100
     p(
       sprintf("Genes found in network: %.2f %%", found_pct),
       downloadLink("dlMissingGenes", sprintf("(%d missing)", length(stats$missing_genes)))
