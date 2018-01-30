@@ -1,8 +1,8 @@
 library(shiny)
 library(shinyjs)
-library(shinythemes)
 library(shinysky)
 library(visNetwork)
+library(shinycssloaders)
 
 source("grandforest-web-common/enrichment.R")
 
@@ -13,7 +13,7 @@ shinyUI(tagList(
   ),
   useShinyjs(),
   div(id="loading-content", h2("Loading..."), div(class="loader", "Loading")),
-  navbarPage("Grand Forest • Unsupervised", theme=shinytheme("cosmo"),
+  navbarPage("Grand Forest • Unsupervised", inverse=TRUE,
     footer=column(width=12, hr(), p("Grand Forest • Unsupervised workflow • Version 0.1")),
     tabPanel("Analysis",
       sidebarLayout(
@@ -65,35 +65,63 @@ shinyUI(tagList(
               h3("Heatmap"),
               p("Heatmap of sample subgroups clustered on computed feature subnetwork."),
               wellPanel(
-                plotOutput("featureHeatmap", height=500),
+                withSpinner(plotOutput("featureHeatmap", height=500)),
                 conditionalPanel("output.hasSplitSelected == true",
                   downloadButton("dlFeatureHeatmap", "Download heatmap", class="btn-sm")
                 )
               )
             )
           ),
-          fluidRow(
-            column(width = 6,
-              h3("Feature subnetwork"),
-              wellPanel(
-                visNetworkOutput("featureGraph"),
-                fluidRow(
-                  conditionalPanel("output.hasSplitSelected == true",
-                    column(width = 4, downloadButton("dlFeatureGraph", "Download network", class="btn-sm")),
-                    column(width = 4, checkboxInput("featureGraphGeneSymbols", "Show gene symbols", value=TRUE))
-                  )
-                )
-              )
-            ),
-            column(width = 6,
-              h3("Top features"),
-              wellPanel(
-                dataTableOutput("featureTable"),
-                conditionalPanel("output.hasSplitSelected == true",
-                  downloadButton("dlFeatureTable", "Download table", class="btn-sm")
-                )
+          h3("Feature subnetwork"),
+          wellPanel(
+            visNetworkOutput("featureGraph"),
+            fluidRow(
+              conditionalPanel("output.hasSplitSelected == true",
+                column(width = 4, downloadButton("dlFeatureGraph", "Download network", class="btn-sm")),
+                column(width = 4, checkboxInput("featureGraphGeneSymbols", "Show gene symbols", value=TRUE))
               )
             )
+          ),
+          h3("Genes"),
+          conditionalPanel("output.hasSplitSelected != true",
+            div(class="alert alert-info", p("Please select a split node to see selected genes."))
+          ),
+          conditionalPanel("output.hasSplitSelected == true",
+            div(class="body-tabs", tabsetPanel(
+              tabPanel("Feature table",
+                dataTableOutput("featureTable"),
+                downloadButton("dlFeatureTable", "Download table", class="btn-sm")
+              ),
+              tabPanel("Gene set enrichment",
+                fluidRow(
+                  column(width=4, selectInput("enrichmentType", "Enrichment type", gene_set_enrichment_types())),
+                  column(width=4, numericInput("enrichmentPvalueCutoff", "p-value cutoff", value=0.05, min=0, max=1, step=0.01)),
+                  column(width=4, numericInput("enrichmentQvalueCutoff", "q-value cutoff", value=0.2, min=0, max=1, step=0.01))
+                ),
+                actionButton("enrichmentButton", "Run enrichment analysis", styleclass="primary"),
+                conditionalPanel("output.hasEnrichmentTable == true",
+                  hr(),
+                  tabsetPanel(
+                    tabPanel("Table",
+                      dataTableOutput("enrichmentTable"),
+                      downloadButton("dlEnrichmentTable", "Download table", class="btn-sm")
+                    ),
+                    tabPanel("Dot plot",
+                      withSpinner(plotOutput("enrichmentPlot"))
+                    )
+                  )
+                )
+              ),
+              tabPanel("Gene targets",
+                selectInput("targetsType", "Database", gene_target_sources()),
+                actionButton("targetsButton", "Get gene targets", styleclass="primary"),
+                conditionalPanel("output.hasTargetsTable == true",
+                  hr(),
+                  dataTableOutput("targetsTable"),
+                  downloadButton("dlTargetsTable", "Download table", class="btn-sm")
+                )
+              )
+            ))
           ),
           conditionalPanel("output.hasSurvivalData == true",
             h3("Survival curves"),
@@ -103,41 +131,23 @@ shinyUI(tagList(
                 "All leaf nodes" = "leaves"
               )),
               checkboxInput("survivalPlotShowKnown", "Plot known clusters", value=FALSE),
-              plotOutput("survivalPlot")
-            )
-          ),
-          h3("Gene set enrichment"),
-          conditionalPanel("output.hasSplitSelected != true",
-            tags$div(class="alert alert-info",
-              p("Please select a split node to perform gene set enrichment")
-            )
-          ),
-          conditionalPanel("output.hasSplitSelected == true",
-            wellPanel(
-              fluidRow(
-                column(width=4, selectInput("enrichmentType", "Enrichment type", gene_set_enrichment_types())),
-                column(width=4, numericInput("enrichmentPvalueCutoff", "p-value cutoff", value=0.05, min=0, max=1, step=0.01)),
-                column(width=4, numericInput("enrichmentQvalueCutoff", "q-value cutoff", value=0.2, min=0, max=1, step=0.01))
-              ),
-              actionButton("enrichmentButton", "Run enrichment analysis", styleclass="primary"),
-              conditionalPanel("output.hasEnrichmentTable == true",
-                hr(),
-                tabsetPanel(
-                  tabPanel("Table",
-                    dataTableOutput("enrichmentTable"),
-                    downloadButton("dlEnrichmentTable", "Download table", class="btn-sm")
-                  ),
-                  tabPanel("Plot",
-                    plotOutput("enrichmentPlot")
-                  )
-                )
-              )
+              withSpinner(plotOutput("survivalPlot"))
             )
           )
         )
       ))
     ),
-    tabPanel("User guide"),
-    tabPanel("Cite")
+    tabPanel("User guide",
+      wellPanel(
+        div(h1("User guide"), class="page-header"),
+        includeMarkdown("guide.md")
+      )
+    ),
+    tabPanel("Cite",
+      wellPanel(
+        div(h1("Cite"), class="page-header"),
+        includeMarkdown("cite.md")
+      )
+    )
   )
 ))
