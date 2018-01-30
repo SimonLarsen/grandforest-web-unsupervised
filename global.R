@@ -1,4 +1,5 @@
 options(shiny.maxRequestSize=400*1024^2)
+options(spinner.type=5)
 
 GROUP_FEATURE_NAME <- "__grandforest__group__"
 
@@ -13,6 +14,8 @@ MAX_NUM_TREES <- 5000
 MIN_NUM_CLUSTERS <- 2
 MAX_NUM_CLUSTERS <- 12
 DEFAULT_NUM_CLUSTERS <- 2
+
+MAX_TARGET_NETWORK_NODES <- 400
 
 EXAMPLE_DATA_PATH <- "data/brca.os.subtypes.LumAB.rds"
 EXAMPLE_DATA_CLUSTERVAR <- "subtype"

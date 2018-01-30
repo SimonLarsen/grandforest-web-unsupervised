@@ -454,7 +454,7 @@ shinyServer(function(input, output, session) {
 
   output$enrichmentTable <- renderDataTable({
     D <- req(as.data.frame(currentEnrichmentTable()))
-    D <- gene_set_enrichment_get_links(D, isolate(input$enrichmentType))
+    D <- get_gene_set_enrichment_links(D, isolate(input$enrichmentType))
     return(D)
   }, options = list(pageLength=10, scrollX=TRUE), escape=FALSE)
 
@@ -473,6 +473,33 @@ shinyServer(function(input, output, session) {
   output$targetsTable <- renderDataTable({
     get_gene_target_links(currentTargetsTable(), isolate(input$targetsType))
   }, options=list(pageLength=10, scrollX=TRUE), escape=FALSE)
+  
+  output$targetsNetwork <- renderVisNetwork({
+    targets <- currentTargetsTable()
+    gene_col <- which(colnames(targets) == "gene")
+    edges <- targets[,c(1,gene_col)]
+    colnames(edges) <- c("from","to")
+    
+    from_nodes <- unique(edges$from)
+    to_nodes <- unique(edges$to)
+    
+    nodes <- data.frame(
+      id = c(from_nodes, to_nodes),
+      label = c(from_nodes, to_nodes),
+      color = c(rep("lightblue", length(from_nodes)), rep("red", length(to_nodes))),
+      stringsAsFactors = FALSE
+    )
+    
+    validate(need(
+      nrow(nodes) <= MAX_TARGET_NETWORK_NODES,
+      sprintf("Gene target network not supported for > %d nodes.", MAX_TARGET_NETWORK_NODES)
+    ))
+    
+    visNetwork(nodes, edges) %>%
+      visNodes(shape = "ellipse") %>%
+      visEdges(smooth = FALSE) %>%
+      visIgraphLayout()
+  })
 
   output$dlSplitTree <- downloadHandler(
     filename = "split_tree.csv",
@@ -485,7 +512,7 @@ shinyServer(function(input, output, session) {
       write.csv(D, file, row.names=FALSE)
     }
   )
-
+  
   output$dlFeatureGraph <- downloadHandler(
     filename = function() {
       paste0("network_top", length(currentFeatures()), ".sif")

@@ -5,6 +5,7 @@ library(visNetwork)
 library(shinycssloaders)
 
 source("grandforest-web-common/enrichment.R")
+source("grandforest-web-common/targets.R")
 
 shinyUI(tagList(
   tags$head(
@@ -57,7 +58,7 @@ shinyUI(tagList(
               h3("Split tree"),
               p("Click on a node to select it, then click \"Split selected node\" from the sidebar to split it."),
               wellPanel(
-                visNetworkOutput("splitTree", height=500),
+                withSpinner(visNetworkOutput("splitTree", height=500)),
                 downloadButton("dlSplitTree", "Download tree", class="btn-sm")
               )
             ),
@@ -74,7 +75,7 @@ shinyUI(tagList(
           ),
           h3("Feature subnetwork"),
           wellPanel(
-            visNetworkOutput("featureGraph"),
+            withSpinner(visNetworkOutput("featureGraph")),
             fluidRow(
               conditionalPanel("output.hasSplitSelected == true",
                 column(width = 4, downloadButton("dlFeatureGraph", "Download network", class="btn-sm")),
@@ -117,8 +118,13 @@ shinyUI(tagList(
                 actionButton("targetsButton", "Get gene targets", styleclass="primary"),
                 conditionalPanel("output.hasTargetsTable == true",
                   hr(),
-                  dataTableOutput("targetsTable"),
-                  downloadButton("dlTargetsTable", "Download table", class="btn-sm")
+                  tabsetPanel(type="tabs",
+                    tabPanel("Table",
+                      dataTableOutput("targetsTable"),
+                      downloadButton("dlTargetsTable", "Download table", class="btn-sm")
+                    ),
+                    tabPanel("Network", withSpinner(visNetworkOutput("targetsNetwork")))
+                  )
                 )
               )
             ))
