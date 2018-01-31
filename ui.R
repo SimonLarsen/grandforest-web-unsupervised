@@ -16,7 +16,7 @@ shinyUI(tagList(
   div(id="loading-content", h2("Loading..."), div(class="loader", "Loading")),
   navbarPage("Grand Forest • Unsupervised", inverse=TRUE,
     footer=column(width=12, hr(), p("Grand Forest • Unsupervised workflow • Version 0.1")),
-    tabPanel("Analysis",
+    tabPanel(HTML("Analysis</a></li><li><a href=\"https://grandforest.compbio.sdu.dk/guide/unsupervised\" target=_blank>User guide</a></li><li><a href=\"https://grandforest.compbio.sdu.dk/#cite\" target=_blank>Cite"),
       sidebarLayout(
         sidebarPanel(width = 3,
           tags$h3("Upload data", class="sidebar-top-heading"),
@@ -145,18 +145,6 @@ shinyUI(tagList(
           )
         )
       ))
-    ),
-    tabPanel("User guide",
-      wellPanel(
-        div(h1("User guide"), class="page-header"),
-        includeMarkdown("guide.md")
-      )
-    ),
-    tabPanel("Cite",
-      wellPanel(
-        div(h1("Cite"), class="page-header"),
-        includeMarkdown("cite.md")
-      )
     )
   )
 ))
