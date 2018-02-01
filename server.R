@@ -191,9 +191,7 @@ shinyServer(function(input, output, session) {
 
       # read network data
       setProgress(value=0.4, detail="Preparing network")
-      graph.path <- get_network_file(input$graph)
-      edges <- fread(graph.path, header=FALSE, sep="\t", colClasses=rep("character", 2))
-      colnames(edges) <- c("from","to")
+      edges <- readRDS(get_network_file(input$graph))
 
       all_nodes <- unique(c(edges$from, edges$to))
       found_genes <- intersect(colnames(D), all_nodes)
