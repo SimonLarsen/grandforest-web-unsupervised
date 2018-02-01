@@ -32,7 +32,7 @@ shinyUI(tagList(
             ),
             textInput("clusterVar", "Known cluster variable name (optional)")
           ),
-          selectInput("graph", "Genetic interaction network",
+          selectInput("graph", "Network",
             list(
               "IID, Human, Experimental only" = "iidexp",
               "IID, Human, Full" = "iidall",
