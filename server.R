@@ -319,7 +319,13 @@ shinyServer(function(input, output, session) {
     nodes <- data.frame(id=node_ids, label=labels)
 
     visNetwork(nodes, edges) %>%
-      visNodes(shape="circle") %>%
+      visNodes(
+        shape="box",
+        color = list(
+          background="#d2e5ff", border="#2b7ce9",
+          highlight = list(background="#f18484", border="#d74d4d")
+        )
+      ) %>%
       visEdges(arrows="to") %>%
       visInteraction(dragNodes=FALSE) %>%
       visHierarchicalLayout(sortMethod="directed") %>%
