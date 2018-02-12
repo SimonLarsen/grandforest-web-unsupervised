@@ -18,6 +18,7 @@ source("grandforest-web-common/enrichment.R")
 source("grandforest-web-common/targets.R")
 source("grandforest-web-common/feature_graph.R")
 source("grandforest-web-common/mapping.R")
+source("grandforest-web-common/make_links.R")
 
 topn <- function(x, n) {
   x[order(x, decreasing=TRUE)][1:n]
@@ -352,12 +353,10 @@ shinyServer(function(input, output, session) {
   })
 
   output$featureTable <- renderDataTable({
-    featureTable()
-  }, options=list(
-    scrollX = TRUE,
-    searching = FALSE,
-    pageLength = 10
-  ))
+    D <- featureTable()
+    D$gene <- make_links(D$gene, "ncbi_gene")
+    return(D)
+  }, options=list(scrollX = TRUE, searching = FALSE, pageLength = 10), escape=FALSE)
 
   featureHeatmapPlot <- reactive({
     req(input$splitTree_selected)
@@ -480,7 +479,7 @@ shinyServer(function(input, output, session) {
   }, options=list(pageLength=10, scrollX=TRUE), escape=FALSE)
   
   output$targetsNetwork <- renderVisNetwork({
-    get_targets_network(currentTargetsTable(), input$targetsNetworkSymbols)
+    get_targets_network(currentTargetsTable(), isolate(input$targetsType), input$targetsNetworkSymbols)
   })
 
   output$dlSplitTree <- downloadHandler(
