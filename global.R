@@ -1,6 +1,8 @@
 options(shiny.maxRequestSize=400*1024^2)
 options(spinner.type=5)
 
+APP_VERSION <- "0.1-preview"
+
 GROUP_FEATURE_NAME <- "__grandforest__group__"
 
 DEFAULT_NUM_FEATURES <- 20
