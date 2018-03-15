@@ -22,7 +22,7 @@ shinyUI(tagList(
           tags$h3("Upload data", class="sidebar-top-heading"),
           checkboxInput("useExampleData", "Use example data"),
           conditionalPanel("input.useExampleData == false",
-            fileInput("file", "Expression table (.csv file)", accept = "text/csv"),
+            fileInput("file", "Expression data"),
             checkboxInput("hasSurvival", "Include survival information", value=FALSE),
             conditionalPanel("input.hasSurvival == true",
               fluidRow(

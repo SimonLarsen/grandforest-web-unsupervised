@@ -13,6 +13,7 @@ library(survival)
 library(survminer)
 library(gridExtra)
 
+source("grandforest-web-common/read_data.R")
 source("grandforest-web-common/get_network.R")
 source("grandforest-web-common/enrichment.R")
 source("grandforest-web-common/targets.R")
@@ -147,7 +148,11 @@ shinyServer(function(input, output, session) {
         timeVar <- EXAMPLE_DATA_TIMEVAR
         statusVar <- EXAMPLE_DATA_STATUSVAR
       } else {
-        D <- fread(input$file$datapath, header=TRUE, sep=",")
+        D <- tryCatch(
+          read_expression_file(input$file$datapath),
+          error = function(e) { alert(e$message); return(NULL) }
+        )
+        if(is.null(D)) return()
         clusterVar <- input$clusterVar
         hasSurvival <- input$hasSurvival
         timeVar <- input$timeVar
