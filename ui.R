@@ -7,10 +7,15 @@ library(shinycssloaders)
 source("grandforest-web-common/enrichment.R")
 source("grandforest-web-common/targets.R")
 
+tooltip_label <- function(text, tooltip) {
+  HTML(sprintf('<span data-toggle="tooltip" data-placement="top" title="%s">%s <i class="fa fa-question-circle"></i></span>', tooltip, text))
+}
+
 shinyUI(tagList(
   tags$head(
     tags$link(rel="stylesheet", type="text/css", href="style.css"),
-    tags$link(rel="stylesheet", type="text/css", href="loader.css")
+    tags$link(rel="stylesheet", type="text/css", href="loader.css"),
+    tags$script(type="text/javascript", '/* load tooltips */ $(function () { $(\'[data-toggle="tooltip"]\').tooltip() })')
   ),
   useShinyjs(),
   div(id="loading-content", h2("Loading..."), div(class="loader", "Loading")),
@@ -22,15 +27,15 @@ shinyUI(tagList(
           tags$h3("Upload data", class="sidebar-top-heading"),
           checkboxInput("useExampleData", "Use example data"),
           conditionalPanel("input.useExampleData == false",
-            fileInput("file", "Expression data"),
+            fileInput("file", tooltip_label("Expression data", "See `User guide` for a description of supported file formats.")),
             checkboxInput("hasSurvival", "Include survival information", value=FALSE),
             conditionalPanel("input.hasSurvival == true",
               fluidRow(
-                column(width=6, textInput("timeVar", "Time variable name")),
-                column(width=6, textInput("statusVar", "Status variable name"))
+                column(width=6, textInput("timeVar", tooltip_label("Time variable name", "Name of column containing survival times. Values must be numeric."))),
+                column(width=6, textInput("statusVar", tooltip_label("Status variable name", "Name of column containing status/event values. 1=event, 0=right censored.")))
               )
             ),
-            textInput("clusterVar", "Known cluster variable name (optional)")
+            textInput("clusterVar", tooltip_label("Known cluster variable name (optional)", "Name of column containing known clusters."))
           ),
           selectInput("graph", "Network",
             list(
@@ -113,7 +118,7 @@ shinyUI(tagList(
                   )
                 )
               ),
-              tabPanel("Gene targets",
+              tabPanel("Drug/miRNA targets",
                 selectInput("targetsType", "Database", gene_target_sources()),
                 actionButton("targetsButton", "Get gene targets", styleclass="primary"),
                 conditionalPanel("output.hasTargetsTable == true",
