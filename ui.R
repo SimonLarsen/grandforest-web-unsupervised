@@ -1,6 +1,5 @@
 library(shiny)
 library(shinyjs)
-library(shinysky)
 library(visNetwork)
 library(shinycssloaders)
 
@@ -46,15 +45,15 @@ shinyUI(tagList(
               "HTRIdb" = "htri"
             )
           ),
-          actionButton("uploadButton", "Submit", styleclass = "primary"),
+          actionButton("uploadButton", "Submit", class="btn-primary"),
           conditionalPanel("output.hasModel == true",
             h3("Split parameters"),
             uiOutput("summary"),
             numericInput("ntrees", "Number of decision trees", DEFAULT_NUM_TREES, min = MIN_NUM_TREES, max = MAX_NUM_TREES),
             sliderInput("nfeatures", "Number of features to split on", min=MIN_NUM_FEATURES, max=MAX_NUM_FEATURES, value=DEFAULT_NUM_FEATURES, step=1),
             sliderInput("nclusters", "Number of clusters to split into", min=MIN_NUM_CLUSTERS, max=MAX_NUM_CLUSTERS, value=DEFAULT_NUM_CLUSTERS, step=1),
-            actionButton("splitButton", "Split selected node", styleclass = "primary"),
-            actionButton("collapseButton", "Collapse selected node", styleclass="primary")
+            actionButton("splitButton", "Split selected node", class="btn-primary"),
+            actionButton("collapseButton", "Collapse selected node", class="btn-primary")
           )
         ),
         mainPanel(conditionalPanel("output.hasModel == true",
@@ -104,7 +103,7 @@ shinyUI(tagList(
                   column(width=4, numericInput("enrichmentPvalueCutoff", "p-value cutoff", value=0.05, min=0, max=1, step=0.01)),
                   column(width=4, numericInput("enrichmentQvalueCutoff", "q-value cutoff", value=0.2, min=0, max=1, step=0.01))
                 ),
-                actionButton("enrichmentButton", "Run enrichment analysis", styleclass="primary"),
+                actionButton("enrichmentButton", "Run enrichment analysis", class="btn-primary"),
                 conditionalPanel("output.hasEnrichmentTable == true",
                   hr(),
                   tabsetPanel(
@@ -120,7 +119,7 @@ shinyUI(tagList(
               ),
               tabPanel("Drug/miRNA targets",
                 selectInput("targetsType", "Database", gene_target_sources()),
-                actionButton("targetsButton", "Get gene targets", styleclass="primary"),
+                actionButton("targetsButton", "Get gene targets", class="btn-primary"),
                 conditionalPanel("output.hasTargetsTable == true",
                   hr(),
                   tabsetPanel(type="tabs",

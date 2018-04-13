@@ -3,15 +3,8 @@ library(shinyjs)
 library(data.table)
 library(magrittr)
 library(grandforest)
-library(igraph)
-library(visNetwork)
-library(ComplexHeatmap)
-library(circlize)
-library(org.Hs.eg.db)
-library(ggplot2)
 library(survival)
 library(survminer)
-library(gridExtra)
 
 source("grandforest-web-common/read_data.R")
 source("grandforest-web-common/get_network.R")
@@ -324,6 +317,7 @@ shinyServer(function(input, output, session) {
     }
     nodes <- data.frame(id=node_ids, label=labels)
 
+    library(visNetwork)
     visNetwork(nodes, edges) %>%
       visNodes(
         shape="box",
@@ -379,8 +373,9 @@ shinyServer(function(input, output, session) {
     D <- D[rows,features,with=FALSE]
     colnames(D) <- paste0(features, " (", gene_names, ")")
 
-    col.ramp <- colorRamp2(c(-2, 0, 2), c("magenta", "black", "green"))
+    col.ramp <- circlize::colorRamp2(c(-2, 0, 2), c("magenta", "black", "green"))
 
+    library(ComplexHeatmap)
     hm <- Heatmap(D, name="expression", split=groups, col=col.ramp)
 
     # add known cluster annotation if available
@@ -432,7 +427,7 @@ shinyServer(function(input, output, session) {
       fit <- survfit(Surv(time, status)~cluster, data=D)
       pval <- paste0("p = ", surv_pvalue(fit, data=D)$pval)
       p2 <- ggsurvplot(fit, data=D, pval=pval)
-      p <- grid.arrange(p$plot, p2$plot, ncol=2)
+      p <- gridExtra::grid.arrange(p$plot, p2$plot, ncol=2)
     }
 
     return(p)
