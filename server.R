@@ -86,6 +86,7 @@ shinyServer(function(input, output, session) {
   currentSurvivalData <- reactiveVal()
   currentKnownClusters <- reactiveVal()
   currentEdges <- reactiveVal()
+  currentSpecies <- reactiveVal()
   currentTree <- reactiveVal(list())
   currentStats <- reactiveVal()
   lastSplitID <- reactiveVal()
@@ -114,16 +115,29 @@ shinyServer(function(input, output, session) {
   outputOptions(output, "hasSplitSelected", suspendWhenHidden=FALSE)
 
   output$hasEnrichmentTable <- reactive({
-    D <- req(currentEnrichmentTable())
-    return(nrow(D) > 0)
+    req(currentEnrichmentTable())
+    return(TRUE)
   })
   outputOptions(output, "hasEnrichmentTable", suspendWhenHidden=FALSE)
 
   output$hasTargetsTable <- reactive({
-    D <- req(currentTargetsTable())
-    return(nrow(D) > 0)
+    req(currentTargetsTable())
+    return(TRUE)
   })
   outputOptions(output, "hasTargetsTable", suspendWhenHidden=FALSE)
+
+  output$currentSpecies <- reactive({
+    currentSpecies()
+  })
+  outputOptions(output, "currentSpecies", suspendWhenHidden=FALSE)
+
+  output$graphSelect <- renderUI({
+    selectInput("graph", "Network", get_network_options(input$species))
+  })
+
+  output$enrichmentTypeSelect <- renderUI({
+    selectInput("enrichmentType", "Enrichment type", gene_set_enrichment_types(currentSpecies()))
+  })
 
   observeEvent(input$uploadButton, {
     if(!input$useExampleData && !isTruthy(input$file)) {
@@ -212,6 +226,7 @@ shinyServer(function(input, output, session) {
       currentKnownClusters(clusters)
       currentSurvivalData(survival)
       currentEdges(edges)
+      currentSpecies(input$species)
       currentTree(list(list(rows=1:nrow(D))))
       currentStats(list(found_genes=found_genes, missing_genes=missing_genes))
       currentEnrichmentTable(NULL)
@@ -281,7 +296,7 @@ shinyServer(function(input, output, session) {
 
   featureTable <- reactive({
     importance <- currentFeatures()
-    names <- map_ids_fallback(names(importance), "SYMBOL", "ENTREZID")
+    names <- map_ids_fallback(names(importance), "SYMBOL", "ENTREZID", currentSpecies())
     data.table(gene=names(importance), name=names, importance=importance)
   })
 
@@ -343,7 +358,7 @@ shinyServer(function(input, output, session) {
 
     labels <- features
     if(input$featureGraphGeneSymbols) {
-      labels <- map_ids_fallback(features, "SYMBOL", "ENTREZID")
+      labels <- map_ids_fallback(features, "SYMBOL", "ENTREZID", currentSpecies())
     }
 
     group_names <- tree[[node_id]]$children
@@ -365,7 +380,7 @@ shinyServer(function(input, output, session) {
 
     rows <- tree[[node_id]]$rows
     features <- names(currentFeatures())
-    gene_names <- map_ids_fallback(features, "SYMBOL", "ENTREZID")
+    gene_names <- map_ids_fallback(features, "SYMBOL", "ENTREZID", currentSpecies())
     group_names <- tree[[node_id]]$children
     groups <- group_names[tree[[node_id]]$cluster]
 
@@ -449,7 +464,7 @@ shinyServer(function(input, output, session) {
       universe <- colnames(D)
 
       setProgress(value=0.2, detail="Computing enrichment")
-      out <- gene_set_enrichment(genes, universe, input$enrichmentType, input$enrichmentPvalueCutoff, input$enrichmentQvalueCutoff)
+      out <- gene_set_enrichment(genes, currentSpecies(), universe, input$enrichmentType, input$enrichmentPvalueCutoff, input$enrichmentQvalueCutoff)
 
       setProgress(value=0.9, detail="Finishing up")
       currentEnrichmentTable(out)
@@ -457,13 +472,14 @@ shinyServer(function(input, output, session) {
   })
 
   output$enrichmentTable <- renderDataTable({
-    D <- req(as.data.frame(currentEnrichmentTable()))
-    D <- get_gene_set_enrichment_links(D, isolate(input$enrichmentType))
-    return(D)
+    D <- as.data.frame(req(currentEnrichmentTable()))
+    validate(need(nrow(D) > 0, "No significantly enriched gene sets found."))
+    get_gene_set_enrichment_links(D, isolate(input$enrichmentType))
   }, options = list(pageLength=10, scrollX=TRUE), escape=FALSE)
 
   output$enrichmentPlot <- renderPlot({
     D <- req(currentEnrichmentTable())
+    validate(need(nrow(D) > 0, "No significantly enriched gene sets found."))
     DOSE::dotplot(D, showCategory=20)
   })
 
@@ -475,11 +491,15 @@ shinyServer(function(input, output, session) {
   })
 
   output$targetsTable <- renderDataTable({
-    get_gene_targets_table(currentTargetsTable(), isolate(input$targetsType))
+    D <- req(currentTargetsTable())
+    validate(need(nrow(D) > 0, "No targets found."))
+    get_gene_targets_table(D, isolate(input$targetsType))
   }, options=list(pageLength=10, scrollX=TRUE), escape=FALSE)
-  
+
   output$targetsNetwork <- renderVisNetwork({
-    get_gene_targets_network(currentTargetsTable(), isolate(input$targetsType), input$targetsNetworkSymbols)
+    D <- req(currentTargetsTable())
+    validate(need(nrow(D) > 0, "No targets found."))
+    get_gene_targets_network(D, isolate(input$targetsType), input$targetsNetworkSymbols)
   })
 
   output$dlSplitTree <- downloadHandler(
@@ -493,7 +513,7 @@ shinyServer(function(input, output, session) {
       write.csv(D, file, row.names=FALSE)
     }
   )
-  
+
   output$dlFeatureGraph <- downloadHandler(
     filename = function() {
       paste0("network_top", length(currentFeatures()), ".sif")
@@ -505,8 +525,8 @@ shinyServer(function(input, output, session) {
       edges <- subset(edges, from %in% features & to %in% features)
       D <- data.frame(from=edges$from, type=".", to=edges$to)
       if(input$featureGraphGeneSymbols) {
-        D$from <- map_ids_fallback(as.character(D$from), "SYMBOL", "ENTREZID")
-        D$to <- map_ids_fallback(as.character(D$to), "SYMBOL", "ENTREZID")
+        D$from <- map_ids_fallback(as.character(D$from), "SYMBOL", "ENTREZID", currentSpecies())
+        D$to <- map_ids_fallback(as.character(D$to), "SYMBOL", "ENTREZID", currentSpecies())
       }
 
       write.table(D, file, row.names=FALSE, col.names=FALSE, sep="\t", quote=FALSE)

@@ -36,15 +36,11 @@ shinyUI(tagList(
             ),
             textInput("clusterVar", tooltip_label("Known cluster variable name (optional)", "Name of column containing known clusters."))
           ),
-          selectInput("graph", "Network",
-            list(
-              "IID, Human, Experimental only" = "iidexp",
-              "IID, Human, Full" = "iidall",
-              "RegNetwork" = "regnetwork",
-              "BioGRID" = "biogrid",
-              "HTRIdb" = "htri"
-            )
-          ),
+          selectInput("species", "Species", list(
+            "Homo sapiens" = "human",
+            "Mus musculus" = "mouse"
+          )),
+          uiOutput("graphSelect"),
           actionButton("uploadButton", "Submit", class="btn-primary"),
           conditionalPanel("output.hasModel == true",
             h3("Split parameters"),
@@ -99,7 +95,7 @@ shinyUI(tagList(
               ),
               tabPanel("Gene set enrichment",
                 fluidRow(
-                  column(width=4, selectInput("enrichmentType", "Enrichment type", gene_set_enrichment_types())),
+                  column(width=4, uiOutput("enrichmentTypeSelect")),
                   column(width=4, numericInput("enrichmentPvalueCutoff", "p-value cutoff", value=0.05, min=0, max=1, step=0.01)),
                   column(width=4, numericInput("enrichmentQvalueCutoff", "q-value cutoff", value=0.2, min=0, max=1, step=0.01))
                 ),
@@ -118,20 +114,25 @@ shinyUI(tagList(
                 )
               ),
               tabPanel("Drug/miRNA targets",
-                selectInput("targetsType", "Database", gene_target_sources()),
-                actionButton("targetsButton", "Get gene targets", class="btn-primary"),
-                conditionalPanel("output.hasTargetsTable == true",
-                  hr(),
-                  tabsetPanel(type="tabs",
-                    tabPanel("Table",
-                      withSpinner(dataTableOutput("targetsTable")),
-                      downloadButton("dlTargetsTable", "Download table", class="btn-sm")
-                    ),
-                    tabPanel("Network",
-                      withSpinner(visNetworkOutput("targetsNetwork")),
-                      checkboxInput("targetsNetworkSymbols", "Show gene symbols", value=TRUE)
+                conditionalPanel("output.currentSpecies == 'human'",
+                  selectInput("targetsType", "Database", gene_target_sources()),
+                  actionButton("targetsButton", "Get gene targets", class="btn-primary"),
+                  conditionalPanel("output.hasTargetsTable == true",
+                    hr(),
+                    tabsetPanel(type="tabs",
+                      tabPanel("Table",
+                        withSpinner(dataTableOutput("targetsTable")),
+                        downloadButton("dlTargetsTable", "Download table", class="btn-sm")
+                      ),
+                      tabPanel("Network",
+                        withSpinner(visNetworkOutput("targetsNetwork")),
+                        checkboxInput("targetsNetworkSymbols", "Show gene symbols", value=TRUE)
+                      )
                     )
                   )
+                ),
+                conditionalPanel("output.currentSpecies != 'human'",
+                  div(class="alert alert-info", "Drug/miRNA target search only supported for Homo sapiens.")
                 )
               )
             ))
