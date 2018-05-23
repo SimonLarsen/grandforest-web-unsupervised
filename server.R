@@ -149,6 +149,11 @@ shinyServer(function(input, output, session) {
       setProgress(value=0.1, detail="Parsing expression data")
 
       if(input$useExampleData) {
+        if(input$species != "human") {
+          alert("Please set species to \"Homo sapiens\" when using example data.")
+          return()
+        }
+
         D <- readRDS(EXAMPLE_DATA_PATH)
         clusterVar <- EXAMPLE_DATA_CLUSTERVAR
         hasSurvival <- TRUE
