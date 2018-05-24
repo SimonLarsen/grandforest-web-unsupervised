@@ -34,7 +34,7 @@ split_node <- function(tree, i, D, edges, ntrees, nfeatures, nclusters) {
   }
 
   features <- names(topn(tree[[i]]$importance, nfeatures))
-  cl <- kmeans(D[rows,features,with=FALSE], centers=nclusters)
+  cl <- kmeans(D[rows,features,with=FALSE], centers=nclusters, nstart=20)
   cluster <- cl$cluster
 
   tlength <- length(tree)
@@ -385,29 +385,36 @@ shinyServer(function(input, output, session) {
 
     rows <- tree[[node_id]]$rows
     features <- names(currentFeatures())
-    gene_names <- map_ids_fallback(features, "SYMBOL", "ENTREZID", currentSpecies())
     group_names <- tree[[node_id]]$children
-    groups <- group_names[tree[[node_id]]$cluster]
 
     D <- currentData()
-    D <- D[rows,features,with=FALSE]
-    colnames(D) <- paste0(features, " (", gene_names, ")")
-
-    col.ramp <- circlize::colorRamp2(c(-2, 0, 2), c("magenta", "black", "green"))
-
-    library(ComplexHeatmap)
-    hm <- Heatmap(D, name="expression", split=groups, col=col.ramp)
-
-    # add known cluster annotation if available
-    if(isTruthy(currentKnownClusters())) {
-      clusters <- currentKnownClusters()
-      cluster_levels <- levels(clusters)
-      colors <- rainbow(length(cluster_levels))
-      anno <- data.frame(cluster=clusters)
-      cluster_col <- setNames(colors, cluster_levels)
-      hm <- hm + rowAnnotation(anno, col=list(cluster=cluster_col))
+    D <- as.matrix(D[rows,features,with=FALSE])
+    rownames(D) <- paste0("p", seq_len(nrow(D)))
+    if(input$featureHeatmapGeneSymbols) {
+      colnames(D) <- map_ids_fallback(features, "SYMBOL", "ENTREZID", currentSpecies())
     }
-    return(hm)
+
+    D[D >  2] <-  2
+    D[D < -2] <- -2
+
+    anno <- data.frame(cluster=as.factor(group_names[tree[[node_id]]$cluster]))
+    rownames(anno) <- paste0("p", seq_len(nrow(anno)))
+    row_order <- order(anno$cluster)
+
+    gaps_row <- head(cumsum(table(anno$cluster)), -1)
+
+    if(isTruthy(currentKnownClusters())) {
+      anno[["known cluster"]] <- as.factor(currentKnownClusters()[rows])
+    }
+
+    pheatmap::pheatmap(
+      D[row_order,],
+      color = colorRampPalette(c("magenta","black","green"))(100),
+      annotation_row = anno,
+      cluster_rows = FALSE,
+      show_rownames = FALSE,
+      gaps_row = gaps_row
+    )
   })
 
   output$featureHeatmap <- renderPlot({
@@ -543,8 +550,9 @@ shinyServer(function(input, output, session) {
       paste0("heatmap_", input$splitTree_selected, ".pdf")
     },
     content = function(file) {
-      pdf(file=file, width=10, height=10)
-      print(featureHeatmapPlot())
+      p <- featureHeatmapPlot()
+      pdf(file=file, width=9, height=9)
+      print(p)
       dev.off()
     }
   )

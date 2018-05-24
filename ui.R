@@ -68,7 +68,10 @@ shinyUI(tagList(
               wellPanel(
                 withSpinner(plotOutput("featureHeatmap", height=500)),
                 conditionalPanel("output.hasSplitSelected == true",
-                  downloadButton("dlFeatureHeatmap", "Download heatmap", class="btn-sm")
+                  fluidRow(
+                    column(width=4, downloadButton("dlFeatureHeatmap", "Download heatmap", class="btn-sm")),
+                    column(width=4, checkboxInput("featureHeatmapGeneSymbols", "Show gene symbol", value=TRUE))
+                  )
                 )
               )
             )
@@ -76,10 +79,10 @@ shinyUI(tagList(
           h3("Feature subnetwork"),
           wellPanel(
             withSpinner(visNetworkOutput("featureGraph")),
-            fluidRow(
-              conditionalPanel("output.hasSplitSelected == true",
-                column(width = 4, downloadButton("dlFeatureGraph", "Download network", class="btn-sm")),
-                column(width = 4, checkboxInput("featureGraphGeneSymbols", "Show gene symbols", value=TRUE))
+            conditionalPanel("output.hasSplitSelected == true",
+              fluidRow(
+                column(width=4, downloadButton("dlFeatureGraph", "Download network", class="btn-sm")),
+                column(width=4, checkboxInput("featureGraphGeneSymbols", "Show gene symbols", value=TRUE))
               )
             )
           ),
