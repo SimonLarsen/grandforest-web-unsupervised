@@ -22,7 +22,7 @@ shinyUI(tagList(
     footer=column(width=12, hr(), p(paste0("Grand Forest • Unsupervised workflow • Version ", APP_VERSION))),
     tabPanel(HTML("Analysis</a></li><li><a href=\"https://grandforest.compbio.sdu.dk/guide/unsupervised\" target=_blank>User guide</a></li><li><a href=\"https://grandforest.compbio.sdu.dk/#cite\" target=_blank>Cite"),
       sidebarLayout(
-        sidebarPanel(width = 3,
+        sidebarPanel(width=3,
           tags$h3("Upload data", class="sidebar-top-heading"),
           checkboxInput("useExampleData", "Use example data"),
           conditionalPanel("input.useExampleData == false",
@@ -52,7 +52,7 @@ shinyUI(tagList(
             actionButton("collapseButton", "Collapse selected node", class="btn-primary")
           )
         ),
-        mainPanel(conditionalPanel("output.hasModel == true",
+        mainPanel(width=9, conditionalPanel("output.hasModel == true",
           fluidRow(
             column(width = 6,
               h3("Split tree"),
