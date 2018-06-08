@@ -141,18 +141,28 @@ shinyServer(function(input, output, session) {
 
   observeEvent(input$uploadButton, {
     if(!input$useExampleData && !isTruthy(input$file)) {
-      alert("Please select an expression data file and wait for it to upload before submitting.")
-      return()
+      alert("Please select an expression data file and wait for it to upload before submitting."); return()
     }
-
     if(input$useExampleData && input$species != "human") {
-      alert("Please set species to \"Homo sapiens\" when using example data.")
-      return()
+      alert("Please set species to \"Homo sapiens\" when using example data."); return()
+    }
+    if(input$graph == "custom" && !isTruthy(input$graphFile)) {
+      alert("Please select a network file and wait for it to upload before submitting."); return()
     }
 
     withProgress(value=0, message = "Parsing data", {
-      setProgress(value=0.1, detail="Parsing expression data")
+      setProgress(value=0.1, detail="Preparing network")
+      if(input$graph == "custom") {
+        edges <- tryCatch(
+          read_network_file(input$graphFile$datapath),
+          error = function(e) { alert(e$message); return(NULL) }
+        )
+        if(is.null(edges)) return()
+      } else {
+        edges <- readRDS(get_network_file(input$graph))
+      }
 
+      setProgress(value=0.2, detail="Parsing expression data")
       if(input$useExampleData) {
         D <- readRDS(EXAMPLE_DATA_PATH)
         clusterVar <- EXAMPLE_DATA_CLUSTERVAR
@@ -207,13 +217,18 @@ shinyServer(function(input, output, session) {
         D <- D[,-c(time_col,status_col),with=FALSE]
       }
 
-      # read network data
-      setProgress(value=0.4, detail="Preparing network")
-      edges <- readRDS(get_network_file(input$graph))
-
       all_nodes <- unique(c(edges$from, edges$to))
       found_genes <- intersect(colnames(D), all_nodes)
       missing_genes <- setdiff(colnames(D), all_nodes)
+      found_pct <- length(found_genes) / (length(found_genes) + length(missing_genes))
+
+      if(length(found_genes) == 0) {
+        alert("No expression was found for any genes in the network. Make sure you chose the right species, and that all gene IDs are NCBI Entrez ID.")
+        return()
+      }
+      if(found_pct < MISSING_GENE_WARNING) {
+        alert(sprintf("Only %.2f %% of genes in the data set were found in the network. Make sure you chose the right species, and that all gene IDs are NCBI Entrez ID.", found_pct*100))
+      }
 
       # scale and mean center data
       setProgress(value=0.6, detail="Normalizing data")

@@ -41,6 +41,9 @@ shinyUI(tagList(
             "Mus musculus" = "mouse"
           )),
           uiOutput("graphSelect"),
+          conditionalPanel("input.graph == 'custom'",
+            fileInput("graphFile", tooltip_label("Network file", "See `User guide` for a description of supported file formats."))
+          ),
           actionButton("uploadButton", "Submit", class="btn-primary"),
           conditionalPanel("output.hasModel == true",
             h3("Split parameters"),
